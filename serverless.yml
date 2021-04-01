@@ -1,0 +1,194 @@
+org: intellagent
+app: festival-cloud
+service: festival-cloud
+useDotenv: true
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: '20201221'
+  region: us-east-1
+  stage: api
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+        - "s3:GetObject"
+      Resource:
+        - "arn:aws:s3:::${env:BUCKET}/*"
+  apiGateway:
+    binaryMediaTypes:
+      - 'multipart/form-data'
+      - 'image/png'
+      - 'image/jpeg'
+
+functions:
+  festivals:
+    handler: src/festivals.handler
+    events:
+      - http:
+          path: /festivals
+          method: post
+          cors: true
+      - http:
+          path: /festivals
+          method: get
+          cors: true
+      - http:
+          path: /festivals/{id}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /festivals/{id}
+          method: put
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /festivals/{id}
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  stages:
+    handler: src/stages.handler
+    events:
+      - http:
+          path: /stages
+          method: post
+          cors: true
+      - http:
+          path: /stages
+          method: get
+          cors: true
+      - http:
+          path: /stages/{id}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /stages/{id}
+          method: put
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /stages/{id}
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  shows:
+    handler: src/shows.handler
+    events:
+      - http:
+          path: /shows
+          method: post
+          cors: true
+      - http:
+          path: /shows
+          method: get
+          cors: true
+      - http:
+          path: /shows/{id}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /shows/{id}
+          method: put
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /shows/{id}
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  performers:
+    handler: src/performers.handler
+    events:
+      - http:
+          path: /performers
+          method: post
+          cors: true
+      - http:
+          path: /performers
+          method: get
+          cors: true
+      - http:
+          path: /performers/{id}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /performers/{id}
+          method: put
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /performers/{id}
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+resources:
+  Resources:
+    StorageBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${env:BUCKET}
+    StorageBucketPolicy:
+      Type: "AWS::S3::BucketPolicy"
+      Properties:
+        Bucket: ${env:BUCKET}
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            Sid: "PublicReadForGetBucketObjects"
+            Effect: "Allow"
+            Resource: "arn:aws:s3:::${env:BUCKET}/*"
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
