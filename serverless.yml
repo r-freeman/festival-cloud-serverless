@@ -27,6 +27,12 @@ provider:
       - 'multipart/form-data'
       - 'image/png'
       - 'image/jpeg'
+  httpApi:
+    authorizers:
+      serviceAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${env:AWS_COGNITO_REGION}.amazonaws.com/${env:AWS_USER_POOL_ID}
+        audience: ${env:AWS_USER_POOL_WEB_CLIENT_ID}
 
 functions:
   festivals:
@@ -36,14 +42,20 @@ functions:
           path: /festivals
           method: post
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /festivals
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /festivals/{id}
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -52,6 +64,8 @@ functions:
           path: /festivals/{id}
           method: put
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -60,6 +74,8 @@ functions:
           path: /festivals/{id}
           method: delete
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -72,14 +88,20 @@ functions:
           path: /stages
           method: post
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /stages
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /stages/{id}
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -88,6 +110,8 @@ functions:
           path: /stages/{id}
           method: put
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -96,6 +120,8 @@ functions:
           path: /stages/{id}
           method: delete
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -108,14 +134,20 @@ functions:
           path: /shows
           method: post
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /shows
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /shows/{id}
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -124,6 +156,8 @@ functions:
           path: /shows/{id}
           method: put
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -132,6 +166,8 @@ functions:
           path: /shows/{id}
           method: delete
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -144,14 +180,20 @@ functions:
           path: /performers
           method: post
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /performers
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
       - http:
           path: /performers/{id}
           method: get
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -160,6 +202,8 @@ functions:
           path: /performers/{id}
           method: put
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
@@ -168,6 +212,8 @@ functions:
           path: /performers/{id}
           method: delete
           cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
           request:
             parameters:
               paths:
