@@ -2,7 +2,7 @@
 
 const middy = require("@middy/core");
 const cors = require('@middy/http-cors');
-const {create, read, readOne, update, deleteOne} = require("./performer");
+const {create, readOne, read, update, deleteOne} = require("./performer");
 
 const performers = (event, context, callback) => {
     context.callbackWaitsForEmptyEventLoop = false;

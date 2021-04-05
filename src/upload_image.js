@@ -1,12 +1,9 @@
 const AWS = require("aws-sdk");
-const Festival = require("./festival.model");
-const Performer = require("./performer.model");
-const Stage = require("./stage.model");
 
 // init s3 client
 const s3 = new AWS.S3();
 
-const uploadImage = async (modelInstance, file) => {
+const uploadImage = async (entity, file) => {
     const {content, contentType, filename} = file;
     let imageName = Math.floor(Date.now() / 1000);
     let imageData = new Buffer.from(content, 'binary');
@@ -14,11 +11,11 @@ const uploadImage = async (modelInstance, file) => {
     let objectKey = `${imageName}-${filename}`;
 
     let UPLOAD_PATH = 'uploads/'
-    if (modelInstance instanceof Festival) {
+    if (entity === 'festival') {
         UPLOAD_PATH = `${UPLOAD_PATH}festivals/`;
-    } else if (modelInstance instanceof Performer) {
+    } else if (entity === 'performer') {
         UPLOAD_PATH = `${UPLOAD_PATH}performers/`;
-    } else if (modelInstance instanceof Stage) {
+    } else if (entity === 'stage') {
         UPLOAD_PATH = `${UPLOAD_PATH}stages/`;
     }
 
@@ -29,9 +26,7 @@ const uploadImage = async (modelInstance, file) => {
         ContentType: imageType
     }).promise();
 
-    // modelInstance.object_key = objectKey;
-    modelInstance.image_path = `https://${process.env.BUCKET}.s3.amazonaws.com/${UPLOAD_PATH}${objectKey}`;
-    await modelInstance.save();
+    return `https://${process.env.BUCKET}.s3.amazonaws.com/${UPLOAD_PATH}${objectKey}`;
 };
 
 module.exports = uploadImage;

@@ -2,7 +2,7 @@
 
 const middy = require("@middy/core");
 const cors = require('@middy/http-cors');
-const {create, read, readOne, update, deleteOne} = require("./festival");
+const {create, readOne, read, update, deleteOne} = require("./festival");
 
 const festivals = (event, context, callback) => {
     context.callbackWaitsForEmptyEventLoop = false;
@@ -24,4 +24,3 @@ const festivals = (event, context, callback) => {
 const handler = middy(festivals).use(cors());
 
 module.exports = {handler};
-

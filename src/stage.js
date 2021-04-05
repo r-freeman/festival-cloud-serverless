@@ -1,8 +1,8 @@
 const parser = require("lambda-multipart-parser");
+const {v4} = require("uuid");
 const Stage = require("./stage.model");
 const connectToDatabase = require("./database");
 const uploadImage = require("./upload_image");
-
 
 // create stage
 const create = async (event, context, callback) => {
@@ -11,24 +11,28 @@ const create = async (event, context, callback) => {
 
         const parsedEvent = await parser.parse(event);
         const {title, description, location, festival_id, festival_title} = parsedEvent;
+        const id = v4();
 
-        const stage = await Stage.create({
-            title,
-            description,
-            location,
-            festival_id,
-            festival_title
-        });
+        let stage = new Stage({id, title, description, location, festival_id, festival_title});
+
+        await stage.save();
 
         if (stage) {
             // only upload images in production
             if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                await uploadImage(stage, parsedEvent.files[0]);
+                const image_path = await uploadImage("stage", parsedEvent.files[0]);
+
+                stage = await Stage.update({id}, {image_path});
+
+                return callback(null, {
+                    statusCode: 201,
+                    body: JSON.stringify(stage.toJSON())
+                });
             }
 
             return callback(null, {
                 statusCode: 201,
-                body: JSON.stringify(stage)
+                body: JSON.stringify(stage.toJSON())
             });
         }
 
@@ -50,9 +54,10 @@ const readOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const stage = await Stage.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            const id = event.pathParameters.id;
+            let stage = await Stage.query("id").eq(id).exec();
+            stage = stage.toJSON().shift();
 
             if (stage) {
                 return callback(null, {
@@ -80,12 +85,12 @@ const read = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        const stages = await Stage.find().exec();
+        const stages = await Stage.scan().exec();
 
         if (stages) {
             return callback(null, {
                 statusCode: 200,
-                body: JSON.stringify(stages)
+                body: JSON.stringify(stages.toJSON())
             });
         }
 
@@ -107,23 +112,25 @@ const update = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-
+        if (typeof event.pathParameters.id !== 'undefined') {
             const parsedEvent = await parser.parse(event);
             const {title, description, location, festival_id, festival_title} = parsedEvent;
-            const stage = await Stage.findById(filter).exec();
+            let id = event.pathParameters.id;
+
+            let stage = await Stage.query("id").eq(id).exec();
+            stage = stage.toJSON().shift();
 
             if (stage) {
-                stage.title = title;
-                stage.description = description;
-                stage.location = location;
-                stage.festival_id = festival_id;
-                stage.festival_title = festival_title;
-                await stage.save();
+                stage = await Stage.update({id}, {title, description, location, festival_id, festival_title});
 
                 if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                    await uploadImage(stage, parsedEvent.files[0]);
+                    const image_path = await uploadImage("stage", parsedEvent.files[0]);
+                    stage = await Stage.update({id}, {image_path});
+
+                    return callback(null, {
+                        statusCode: 200,
+                        body: JSON.stringify(stage.toJSON())
+                    });
                 }
 
                 return callback(null, {
@@ -152,12 +159,12 @@ const deleteOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const stage = await Stage.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            let id = event.pathParameters.id;
+            let stage = await Stage.query("id").eq(id).exec();
 
             if (stage) {
-                stage.delete();
+                await Stage.delete({"id": id});
 
                 return callback(null, {
                     statusCode: 204,

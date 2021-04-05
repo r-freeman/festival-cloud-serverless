@@ -1,4 +1,5 @@
 const parser = require("lambda-multipart-parser");
+const {v4} = require("uuid");
 const Performer = require("./performer.model");
 const connectToDatabase = require("./database");
 const uploadImage = require("./upload_image");
@@ -9,24 +10,29 @@ const create = async (event, context, callback) => {
         await connectToDatabase();
 
         const parsedEvent = await parser.parse(event);
-        const {title, description, contact_phone, contact_email} = parsedEvent;
+        const {title, description, contact_email, contact_phone} = parsedEvent;
+        const id = v4();
 
-        const performer = await Performer.create({
-            title,
-            description,
-            contact_phone,
-            contact_email
-        });
+        let performer = new Performer({id, title, description, contact_email, contact_phone});
+
+        await performer.save();
 
         if (performer) {
             // only upload images in production
             if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                await uploadImage(performer, parsedEvent.files[0]);
+                const image_path = await uploadImage("performer", parsedEvent.files[0]);
+
+                performer = await Performer.update({id}, {image_path});
+
+                return callback(null, {
+                    statusCode: 201,
+                    body: JSON.stringify(performer.toJSON())
+                });
             }
 
             return callback(null, {
                 statusCode: 201,
-                body: JSON.stringify(performer)
+                body: JSON.stringify(performer.toJSON())
             });
         }
 
@@ -48,9 +54,10 @@ const readOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const performer = await Performer.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            const id = event.pathParameters.id;
+            let performer = await Performer.query("id").eq(id).exec();
+            performer = performer.toJSON().shift();
 
             if (performer) {
                 return callback(null, {
@@ -71,19 +78,19 @@ const readOne = async (event, context, callback) => {
             body: JSON.stringify(err)
         });
     }
-}
+};
 
 // read all performers
 const read = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        const performers = await Performer.find().exec();
+        const performers = await Performer.scan().exec();
 
         if (performers) {
             return callback(null, {
                 statusCode: 200,
-                body: JSON.stringify(performers)
+                body: JSON.stringify(performers.toJSON())
             });
         }
 
@@ -105,22 +112,25 @@ const update = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-
+        if (typeof event.pathParameters.id !== 'undefined') {
             const parsedEvent = await parser.parse(event);
-            const {title, description, contact_phone, contact_email} = parsedEvent;
-            const performer = await Performer.findById(filter).exec();
+            const {title, description, contact_email, contact_phone} = parsedEvent;
+            let id = event.pathParameters.id;
+
+            let performer = await Performer.query("id").eq(id).exec();
+            performer = performer.toJSON().shift();
 
             if (performer) {
-                performer.title = title;
-                performer.description = description;
-                performer.contact_phone = contact_phone;
-                performer.contact_email = contact_email;
-                await performer.save();
+                performer = await Performer.update({id}, {title, description, contact_email, contact_phone});
 
                 if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                    await uploadImage(performer, parsedEvent.files[0]);
+                    const image_path = await uploadImage("performer", parsedEvent.files[0]);
+                    performer = await Performer.update({id}, {image_path});
+
+                    return callback(null, {
+                        statusCode: 200,
+                        body: JSON.stringify(performer.toJSON())
+                    });
                 }
 
                 return callback(null, {
@@ -149,12 +159,12 @@ const deleteOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const performer = await Performer.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            let id = event.pathParameters.id;
+            let performer = await Performer.query("id").eq(id).exec();
 
             if (performer) {
-                performer.delete();
+                await Performer.delete({"id": id});
 
                 return callback(null, {
                     statusCode: 204,
@@ -174,6 +184,6 @@ const deleteOne = async (event, context, callback) => {
             body: JSON.stringify(err)
         });
     }
-}
+};
 
-module.exports = {create, readOne, read, update, deleteOne}
+module.exports = {create, readOne, read, update, deleteOne};

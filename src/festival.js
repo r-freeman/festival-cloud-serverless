@@ -1,4 +1,5 @@
 const parser = require("lambda-multipart-parser");
+const {v4} = require("uuid");
 const Festival = require("./festival.model");
 const connectToDatabase = require("./database");
 const uploadImage = require("./upload_image");
@@ -10,24 +11,29 @@ const create = async (event, context, callback) => {
 
         const parsedEvent = await parser.parse(event);
         const {title, description, city, start_date, end_date} = parsedEvent;
+        const id = v4();
 
-        const festival = await Festival.create({
-            title,
-            description,
-            city,
-            start_date,
-            end_date
+        let festival = new Festival({
+            id, title, description, city, start_date, end_date
         });
+
+        await festival.save();
 
         if (festival) {
             // only upload images in production
             if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                await uploadImage(festival, parsedEvent.files[0]);
+                const image_path = await uploadImage("festival", parsedEvent.files[0]);
+                festival = await Festival.update({id}, {image_path});
+
+                return callback(null, {
+                    statusCode: 201,
+                    body: JSON.stringify(festival.toJSON())
+                });
             }
 
             return callback(null, {
                 statusCode: 201,
-                body: JSON.stringify(festival)
+                body: JSON.stringify(festival.toJSON())
             });
         }
 
@@ -49,9 +55,10 @@ const readOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const festival = await Festival.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            const id = event.pathParameters.id;
+            let festival = await Festival.query("id").eq(id).exec();
+            festival = festival.toJSON().shift();
 
             if (festival) {
                 return callback(null, {
@@ -79,12 +86,12 @@ const read = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        const festivals = await Festival.find().exec();
+        const festivals = await Festival.scan().exec();
 
         if (festivals) {
             return callback(null, {
                 statusCode: 200,
-                body: JSON.stringify(festivals)
+                body: JSON.stringify(festivals.toJSON())
             });
         }
 
@@ -106,23 +113,26 @@ const update = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
+        if (typeof event.pathParameters.id !== 'undefined') {
 
             const parsedEvent = await parser.parse(event);
             const {title, description, city, start_date, end_date} = parsedEvent;
-            const festival = await Festival.findById(filter).exec();
+            let id = event.pathParameters.id;
+
+            let festival = await Festival.query("id").eq(id).exec();
+            festival = festival.toJSON().shift();
 
             if (festival) {
-                festival.title = title;
-                festival.description = description;
-                festival.city = city;
-                festival.start_date = start_date;
-                festival.end_date = end_date;
-                await festival.save();
+                festival = await Festival.update({id}, {title, description, city, start_date, end_date});
 
                 if (!process.env.IS_OFFLINE && parsedEvent.files[0]) {
-                    await uploadImage(festival, parsedEvent.files[0]);
+                    const image_path = await uploadImage("festival", parsedEvent.files[0]);
+                    festival = await Festival.update({id}, {image_path});
+
+                    return callback(null, {
+                        statusCode: 200,
+                        body: JSON.stringify(festival.toJSON())
+                    });
                 }
 
                 return callback(null, {
@@ -151,12 +161,12 @@ const deleteOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const festival = await Festival.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            let id = event.pathParameters.id;
+            let festival = await Festival.query("id").eq(id).exec();
 
             if (festival) {
-                festival.delete();
+                await Festival.delete({"id": id});
 
                 return callback(null, {
                     statusCode: 204,

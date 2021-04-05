@@ -1,4 +1,5 @@
 const parser = require("lambda-multipart-parser");
+const {v4} = require("uuid");
 const Show = require("./show.model");
 const connectToDatabase = require("./database");
 
@@ -9,20 +10,16 @@ const create = async (event, context, callback) => {
 
         const parsedEvent = await parser.parse(event);
         const {start_time, end_time, performer_id, performer_title, festival_id, festival_title} = parsedEvent;
+        const id = v4();
 
-        const show = await Show.create({
-            start_time,
-            end_time,
-            performer_id,
-            performer_title,
-            festival_id,
-            festival_title
-        });
+        let show = new Show({id, start_time, end_time, performer_id, performer_title, festival_id, festival_title});
+
+        await show.save();
 
         if (show) {
             return callback(null, {
                 statusCode: 201,
-                body: JSON.stringify(show)
+                body: JSON.stringify(show.toJSON())
             });
         }
 
@@ -44,9 +41,10 @@ const readOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const show = await Show.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            const id = event.pathParameters.id;
+            let show = await Show.query("id").eq(id).exec();
+            show = show.toJSON().shift();
 
             if (show) {
                 return callback(null, {
@@ -74,12 +72,12 @@ const read = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        const shows = await Show.find().exec();
+        const shows = await Show.scan().exec();
 
         if (shows) {
             return callback(null, {
                 statusCode: 200,
-                body: JSON.stringify(shows)
+                body: JSON.stringify(shows.toJSON())
             });
         }
 
@@ -101,25 +99,27 @@ const update = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-
+        if (typeof event.pathParameters.id !== 'undefined') {
             const parsedEvent = await parser.parse(event);
             const {start_time, end_time, performer_id, performer_title, festival_id, festival_title} = parsedEvent;
-            const show = await Show.findById(filter).exec();
+            let id = event.pathParameters.id;
+
+            let show = await Show.query("id").eq(id).exec();
+            show = show.toJSON().shift();
 
             if (show) {
-                show.start_time = start_time;
-                show.end_time = end_time;
-                show.performer_id = performer_id;
-                show.performer_title = performer_title;
-                show.festival_id = festival_id;
-                show.festival_title = festival_title;
-                await show.save();
+                show = await Show.update({id}, {
+                    start_time,
+                    end_time,
+                    performer_id,
+                    performer_title,
+                    festival_id,
+                    festival_title
+                });
 
                 return callback(null, {
                     statusCode: 200,
-                    body: JSON.stringify(show)
+                    body: JSON.stringify(show.toJSON())
                 });
             }
         }
@@ -143,12 +143,12 @@ const deleteOne = async (event, context, callback) => {
     try {
         await connectToDatabase();
 
-        if (typeof event.pathParameters.id !== 'undefined' && event.pathParameters.id.length === 24) {
-            let filter = {_id: event.pathParameters.id}
-            const show = await Show.findById(filter).exec();
+        if (typeof event.pathParameters.id !== 'undefined') {
+            let id = event.pathParameters.id;
+            let show = await Show.query("id").eq(id).exec();
 
             if (show) {
-                show.delete();
+                await Show.delete({"id": id});
 
                 return callback(null, {
                     statusCode: 204,

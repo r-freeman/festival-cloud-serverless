@@ -3,20 +3,24 @@
   "version": "1.0.0",
   "description": "Festival cloud migrated to AWS Lambda",
   "scripts": {
-    "start": "nodemon --exec serverless offline start"
+    "start": "nodemon --exec serverless offline start",
+    "seed": "sls dynamodb seed"
   },
   "dependencies": {
     "@middy/core": "^1.5.2",
     "@middy/http-cors": "^1.5.2",
     "aws-sdk": "^2.875.0",
+    "dynamoose": "^2.7.3",
     "lambda-multipart-parser": "^1.0.1",
-    "mongodb": "^3.6.5",
-    "mongoose": "^5.12.2",
     "serverless": "^2.31.0",
     "serverless-dotenv-plugin": "^3.9.0",
-    "serverless-offline": "^6.9.0"
+    "serverless-dynamodb-client": "0.0.2",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "dynamodb-admin": "^4.0.1",
+    "nodemon": "^2.0.7",
+    "serverless-offline": "^6.9.0",
+    "serverless-dynamodb-local": "^0.2.39"
   }
 }

@@ -5,7 +5,32 @@ useDotenv: true
 
 frameworkVersion: '2'
 
+custom:
+  dynamodb:
+    stages:
+      - api
+    start:
+      port: 8000
+      inMemory: false
+      sharedDb: true
+      dbPath: "./database"
+      migrate: false
+      seed: false
+      convertEmptyValues: true
+    seed:
+      test:
+        sources:
+          - table: festivalsTable
+            sources: [ ./seed/festivals.json ]
+          - table: performersTable
+            sources: [ ./seed/performers.json ]
+          - table: stagesTable
+            sources: [ ./seed/stages.json ]
+          - table: showsTable
+            sources: [ ./seed/shows.json ]
+
 plugins:
+  - serverless-dynamodb-local
   - serverless-offline
   - serverless-dotenv-plugin
 
@@ -15,13 +40,23 @@ provider:
   lambdaHashingVersion: '20201221'
   region: us-east-1
   stage: api
-  iamRoleStatements:
-    - Effect: "Allow"
-      Action:
-        - "s3:PutObject"
-        - "s3:GetObject"
-      Resource:
-        - "arn:aws:s3:::${env:BUCKET}/*"
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "s3:PutObject"
+            - "s3:GetObject"
+          Resource:
+            - "arn:aws:s3:::${env:BUCKET}/*"
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:*"
+          Resource:
+            - ${env:AWS_DYNAMODB_FESTIVALS_TABLE_ARN}
+            - ${env:AWS_DYNAMODB_PERFORMERS_TABLE_ARN}
+            - ${env:AWS_DYNAMODB_STAGES_TABLE_ARN}
+            - ${env:AWS_DYNAMODB_SHOWS_TABLE_ARN}
   apiGateway:
     binaryMediaTypes:
       - 'multipart/form-data'
@@ -72,6 +107,52 @@ functions:
                 id: true
       - http:
           path: /festivals/{id}
+          method: delete
+          cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
+          request:
+            parameters:
+              paths:
+                id: true
+
+  performers:
+    handler: src/performers.handler
+    events:
+      - http:
+          path: /performers
+          method: post
+          cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
+      - http:
+          path: /performers
+          method: get
+          cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
+      - http:
+          path: /performers/{id}
+          method: get
+          cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /performers/{id}
+          method: put
+          cors: true
+          authorizer:
+            arn: ${env:AWS_USER_POOL_ARN}
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /performers/{id}
           method: delete
           cors: true
           authorizer:
@@ -164,52 +245,6 @@ functions:
                 id: true
       - http:
           path: /shows/{id}
-          method: delete
-          cors: true
-          authorizer:
-            arn: ${env:AWS_USER_POOL_ARN}
-          request:
-            parameters:
-              paths:
-                id: true
-
-  performers:
-    handler: src/performers.handler
-    events:
-      - http:
-          path: /performers
-          method: post
-          cors: true
-          authorizer:
-            arn: ${env:AWS_USER_POOL_ARN}
-      - http:
-          path: /performers
-          method: get
-          cors: true
-          authorizer:
-            arn: ${env:AWS_USER_POOL_ARN}
-      - http:
-          path: /performers/{id}
-          method: get
-          cors: true
-          authorizer:
-            arn: ${env:AWS_USER_POOL_ARN}
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: /performers/{id}
-          method: put
-          cors: true
-          authorizer:
-            arn: ${env:AWS_USER_POOL_ARN}
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: /performers/{id}
           method: delete
           cors: true
           authorizer:

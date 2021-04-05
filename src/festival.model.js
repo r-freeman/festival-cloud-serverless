@@ -1,32 +1,16 @@
-const {Schema, model} = require('mongoose');
+const dynamoose = require("dynamoose");
 
-const festivalSchema = new Schema(
-    {
-        title: {
-            type: String,
-            required: [true, 'title field is required'],
-        },
-        description: {
-            type: String,
-            required: [true, 'description field is required'],
-        },
-        city: {
-            type: String,
-            required: [true, 'city field is required'],
-        },
-        start_date: {
-            type: Date,
-            required: [true, 'start date field is required'],
-        },
-        end_date: {
-            type: Date,
-            required: [true, 'end date field is required'],
-        },
-        image_path: {
-            type: String
-        },
-    },
-    {timestamps: true},
-);
+const Festival = dynamoose.model("festivalsTable",
+    new dynamoose.Schema({
+        "id": String,
+        "title": String,
+        "description": String,
+        "city": String,
+        "start_date": String,
+        "end_date": String,
+        "image_path": String
+    }, {timestamps: true}), {"create": false});
 
-module.exports = model('Festival', festivalSchema);
+module.exports = Festival;
+
+

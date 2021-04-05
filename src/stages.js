@@ -2,7 +2,7 @@
 
 const middy = require("@middy/core");
 const cors = require('@middy/http-cors');
-const {create, read, readOne, update, deleteOne} = require("./stage");
+const {create, readOne, read, update, deleteOne} = require("./stage");
 
 const stages = (event, context, callback) => {
     context.callbackWaitsForEmptyEventLoop = false;
@@ -24,4 +24,3 @@ const stages = (event, context, callback) => {
 const handler = middy(stages).use(cors());
 
 module.exports = {handler};
-
